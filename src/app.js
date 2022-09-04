@@ -111,30 +111,15 @@ app.get('/messages', async (req, res) => {
   const limit=req.query.limit  
   const user = req.headers.user;
   
-  
-  
-  
-  
-  
   try {
         const messages = await db.collection('messages').find().toArray();
         const filter= messages.filter(msg=>msg.type==='message'||msg.to===user||msg.from===user)
+        limit?(res.send(filter.slice(-limit))):(res.send(filter)) 
           
-          
-          
-          
-    
-    
-    
-        res.send(filter);
     } catch (error) {
       console.error(error);
       res.sendStatus(500);
     }
-
-
-
-
 
 })
 
