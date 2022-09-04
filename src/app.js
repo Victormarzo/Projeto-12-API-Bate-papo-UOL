@@ -25,7 +25,12 @@ mongoClient.connect(() => {
     text:joi.string().required(),
     type:joi.valid('message','private_message')
   })
-
+  
+  async function findUser(user){
+    const find=await db.collection("participants").findOne({ name: user })
+    return find
+  }
+  
 
   app.post('/participants', async (req, res) => {
     const {name} = req.body;
@@ -34,9 +39,9 @@ mongoClient.connect(() => {
             res.sendStatus(422);
             return;
         }
-        const participantExistent = await db.collection("participants").findOne({ name: name });
+        const participantExistent = await findUser(user);
         if (participantExistent){
-            res.sendStatus(409);
+            res.sendStatus(422);
             return;
         }
     try {
@@ -68,6 +73,8 @@ app.get('/participants', async (req, res) => {
     res.sendStatus(500);
     }
 })
+
+
 app.post('/messages',async (req,res)=>{
     const user = req.headers.user;
     const {error}=messagesSchema.validate(req.body);
@@ -75,7 +82,7 @@ app.post('/messages',async (req,res)=>{
         res.sendStatus(422);
         return;
     }
-    const participantExistent = await db.collection("participants").findOne({ name: user });
+    const participantExistent = await findUser(user);
         if (!participantExistent){
             res.sendStatus(422);
             return;
@@ -90,7 +97,7 @@ app.post('/messages',async (req,res)=>{
     try {
         await db.collection('messages').insertOne(message)
     
-        res.send(message);
+        res.sendStatus(201)
         
     } catch (error) {
         console.error(error);
@@ -99,6 +106,59 @@ app.post('/messages',async (req,res)=>{
 
 
 })
+
+app.get('/messages', async (req, res) => {
+  const limit=req.query.limit  
+  const user = req.headers.user;
+  
+  
+  
+  
+  
+  
+  try {
+        const messages = await db.collection('messages').find().toArray();
+        const filter= messages.filter(msg=>msg.type==='message'||msg.to===user||msg.from===user)
+          
+          
+          
+          
+    
+    
+    
+        res.send(filter);
+    } catch (error) {
+      console.error(error);
+      res.sendStatus(500);
+    }
+
+
+
+
+
+})
+
+
+
+
+app.post('/status', async (req,res)=>{
+  const user = req.headers.user;
+  const participantExistent = await findUser(user);
+  if (!participantExistent){
+      res.sendStatus(404);
+      return;
+  }
+  try {
+    await db.collection("participants").updateOne({ name: user },{$set:{lastStatus:Date.now()}})
+    res.sendStatus(200)
+
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+})
+
+
 
 
 
